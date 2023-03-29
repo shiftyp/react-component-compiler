@@ -1,0 +1,30 @@
+{
+  "name": "rsc-component-compiler-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": "true",
+  "dependencies": {
+    "ts-morph": "17.0.1",
+    "react-component-compiler": "*",
+    "test-fixtures": "*",
+    "@types/node": "^18.15.10",
+    "ava": "^5.2.0",
+    "ts-node": "^10.9.1",
+    "typescript": "5.0.2"
+  },
+  "scripts": {
+    "test": "ava ./src"
+  },
+  "ava": {
+		"extensions": [
+			"ts"
+		],
+		"environmentVariables": {
+			"TS_NODE_LOG_ERROR": "true"
+		},
+		"require": [
+			"ts-node/register"
+		]
+	}
+}

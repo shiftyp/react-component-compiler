@@ -1,0 +1,20 @@
+{
+  "name": "react-component-compiler",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "license": "MIT",
+  "private": "true",
+  "dependencies": {
+    "ts-morph": "17.0.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "18.15.10",
+    "typescript": "5.0.2"
+  },
+  "workspaces": {
+    "nohoist": ["@types/*"]
+  }
+}
