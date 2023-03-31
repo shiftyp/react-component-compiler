@@ -11,9 +11,11 @@ const windowUtility = () => window.location.toString()
 const globalUtility = () => location.toString()
 
 const utilityObj = {
-  customHook,
-  windowUtility,
-  globalUtility,
+  customHook: () => {
+    useEffect(() => {})
+  },
+  windowUtility: () => window.location.toString(),
+  globalUtility: () => location.toString(),
 }
 
 export const client0 = () => {

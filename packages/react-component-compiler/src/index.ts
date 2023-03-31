@@ -7,6 +7,11 @@ import {
   ImportDeclaration,
   Node,
   ImportSpecifier,
+  CallExpression,
+  Identifier,
+  ArrowFunction,
+  FunctionExpression,
+  ElementAccessExpression,
 } from "ts-morph";
 
 export const project = (path: string = `${process.cwd}/tsconfig.json`) =>
@@ -58,63 +63,98 @@ export const findComponents = (sourceFile: SourceFile) => {
             `JSX outside of components not supported: ${sourceFile.getBaseName()}, Line ${element.getStartLineNumber()}`
           );
         }
-        if (componentFn?.getKind() === SyntaxKind.ArrowFunction) {
-          flat.set(
-            componentFn.getFirstAncestorByKindOrThrow(
-              SyntaxKind.VariableDeclaration
-            ),
-            true
-          );
-        } else if (componentFn) {
-          flat.set(
-            componentFn.getFirstAncestorByKindOrThrow(
-              SyntaxKind.FunctionDeclaration
-            ),
-            true
-          );
-        }
+
+        flat.set(componentFn as ArrowFunction | FunctionExpression, true);
 
         return flat;
-      }, new Map<VariableDeclaration | FunctionDeclaration, boolean>())
+      }, new Map<ArrowFunction | FunctionExpression, boolean>())
       .keys()
   );
 };
 
 export const checkForClientComponents = (
-  component: VariableDeclaration | FunctionDeclaration,
+  component: ArrowFunction | FunctionExpression,
   imports: ImportSpecifier[]
 ) => {
-  let isClient = false;
+  const checkIdentifier = (node: Node) => {
+    const symbol = node!.getSymbol();
+    return !!symbol!.getDeclarations().find((declaration) => {
+      return (
+        (declaration instanceof ImportSpecifier &&
+          ~imports.indexOf(declaration)) ||
+        declaration.getSourceFile().getBaseName() === "lib.dom.d.ts"
+      );
+    });
+  };
 
-  const checkDeclarations = (node: Node) => {
-    const symbol = node!
-    .getSymbol()
+  const checkIdentifiers = (node: Node) =>
+    !!node &&
+    !!node.getDescendantsOfKind(SyntaxKind.Identifier).find(checkIdentifier);
 
-    isClient ||= !!symbol &&
-      !!symbol.getDeclarations()
-      .find((declaration) => {
-        return (
-          ~imports.indexOf(declaration as ImportSpecifier) ||
-          declaration.getSourceFile().getBaseName() === "lib.dom.d.ts"
-        );
-      });
+  const checkFunctionDefinition = (node: Node | undefined | null): boolean => {
+    let definition: Node | null | undefined = node;
 
-    if (node.getKind() === SyntaxKind.CallExpression && !isClient) {
-      isClient ||= !!(() => {
-        const child = node.getFirstChild()
-        
-        const identifier = child!.getKind() === SyntaxKind.Identifier ? child! : child!.getLastChildByKindOrThrow(SyntaxKind.Identifier) 
-        
-        const declarations = identifier!.getSymbol()!.getDeclarations()
+    while (
+      definition &&
+      definition.getKind() !== SyntaxKind.ArrowFunction &&
+      definition.getKind() !== SyntaxKind.FunctionExpression
+    ) {
+      if (
+        definition.getKind() === SyntaxKind.Identifier &&
+        checkIdentifier(definition)
+      ) {
+        return true;
+      }
 
-        return declarations?.forEach(decl => decl.forEachDescendant(checkDeclarations))
-      })
+      if (definition.getKind() === SyntaxKind.CallExpression) {
+        definition =
+          definition.getLastChildByKind(SyntaxKind.Identifier) ||
+          definition.getLastChildByKind(SyntaxKind.PropertyAccessExpression) ||
+          definition.getLastChildByKind(SyntaxKind.ElementAccessExpression) ||
+          definition.getLastChildByKind(SyntaxKind.ArrowFunction) ||
+          definition.getLastChildByKind(SyntaxKind.FunctionExpression);
+        continue;
+      }
+
+      if (definition.getKind() === SyntaxKind.PropertyAccessExpression) {
+        definition = definition.getLastChildByKind(SyntaxKind.Identifier)
+        continue
+      }
+
+      if (definition.getKind() === SyntaxKind.ElementAccessExpression) {
+        return true
+      }
+
+      const declarations = definition.getSymbol()!.getDeclarations();
+
+      definition = declarations?.reduce<Node | null | undefined>((_, decl) => {
+        switch (decl.getKind()) {
+          case SyntaxKind.VariableDeclaration:
+            return decl.getLastChildByKind(SyntaxKind.ArrowFunction);
+          case SyntaxKind.FunctionDeclaration:
+            return decl;
+          case SyntaxKind.PropertyDeclaration:
+            return (
+              decl.getLastChildByKind(SyntaxKind.ArrowFunction) ||
+              decl.getLastChildByKind(SyntaxKind.FunctionExpression) ||
+              decl.getLastChildByKind(SyntaxKind.Identifier)
+            );
+          default:
+            return null
+        }
+      }, null);
     }
+    if (!definition) {
+      return true
+    }
+    return checkIdentifiers(definition) || checkFunctionDefinitions(definition);
+  };
 
-    return isClient
-  }
-  
-  component.forEachDescendant(checkDeclarations)
+  const checkFunctionDefinitions = (node: Node | undefined | null) =>
+    !!node &&
+    !!node
+      .getDescendantsOfKind(SyntaxKind.CallExpression)
+      .find(checkFunctionDefinition);
 
-  return isClient;
+  return checkIdentifiers(component) || checkFunctionDefinitions(component);
 };
