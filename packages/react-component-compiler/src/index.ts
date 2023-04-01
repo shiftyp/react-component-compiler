@@ -139,6 +139,12 @@ export const checkForClientComponents = (
               decl.getLastChildByKind(SyntaxKind.FunctionExpression) ||
               decl.getLastChildByKind(SyntaxKind.Identifier)
             );
+          case SyntaxKind.ShorthandPropertyAssignment:
+            const name = decl.getLastChildByKind(SyntaxKind.Identifier)?.getText()!
+            const tmp = decl.replaceWithText(`${name}: ${name}`)
+            const def = tmp.getLastChildByKind(SyntaxKind.Identifier)!.getSymbol()!.getDeclarations()[0]!
+            tmp.replaceWithText(name)
+            return def
           default:
             return null
         }

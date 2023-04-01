@@ -109,6 +109,7 @@
   "include": [
     "./base/index.tsx",
     "./client/index.tsx",
-    "./js/index.jsx"
+    "./js/index.jsx",
+    "./edge_cases/index.tsx"
   ]
 }
