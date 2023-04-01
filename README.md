@@ -29,3 +29,15 @@ These rules might allow for the client and server components to be identified au
 ## Methodology
 
 The general rule would be, default to splitting components into server components. If we can determine client dependencies, make the decision to split into a client component. If we can't determine the dependencies, make it a client component for safety. Allow overrides to fine tune the decisions and handle indeterminate edge cases.
+
+## TODOs
+
+A lot. TODO's are a TODO
+
+## Authors / Contributors
+
+@shiftyp
+
+## Contributing
+
+Also a TODO
