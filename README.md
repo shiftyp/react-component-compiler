@@ -25,3 +25,7 @@ The spark for this idea came, oddly enough, from the NextJS docs, which contains
 | Use React Class components                                                   | ❌                | ✅                |
 
 These rules might allow for the client and server components to be identified automatically through AST navigation, and the associated code split into client and server bundles
+
+## Methodology
+
+The general rule would be, default to splitting components into server components. If we can determine client dependencies, make the decision to split into a client component. If we can't determine the dependencies, make it a client component for safety. Allow overrides to fine tune the decisions and handle indeterminate edge cases.
